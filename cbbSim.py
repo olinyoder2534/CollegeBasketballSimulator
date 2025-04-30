@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 # %%
-df = pd.read_csv(r"cbb1.csv") #cbb1 csv file -- has some edits I made in R from cbb.csv file
+df = pd.read_csv(r"cbb1.csv") #cbb1 csv file -- has some edits I made in R from cbb20.csv file
 
 # %% [markdown]
 # The data set contains offensive and defensive information about each Division 1 baseketball team, as well as their rank and conference.
