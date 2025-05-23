@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 # %%
-df = pd.read_csv(r"C:\Users\O973\Desktop\Personal\cbb1.csv") #cbb1 csv file -- has some edits I made in R from cbb20.csv file
+df = pd.read_csv("cbb1.csv") #cbb1 csv file -- has some edits I made in R from cbb20.csv file
 
 # %% [markdown]
 # The data set contains offensive and defensive information about each Division 1 baseketball team, as well as their rank and conference.
@@ -21,7 +21,7 @@ df.shape
 df.columns
 
 # %%
-kenPom = pd.read_csv(r"C:\Users\O973\Desktop\Personal\KenPom.csv") #kenPom csv file
+kenPom = pd.read_csv("KenPom.csv") #kenPom csv file
 kenPom = kenPom.iloc[:, 0:5]
 
 # %%
@@ -680,7 +680,7 @@ print(f"\nThe winner of the tournament is: {winner}")
 # ## 2025 Simulation
 
 # %%
-df_2025 = pd.read_csv(r"C:\Users\O973\Desktop\Personal\cbb25.csv")
+df_2025 = pd.read_csv("cbb25.csv")
 
 # %%
 df_2025.head()
