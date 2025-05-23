@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 # %%
-df = pd.read_csv(r"cbb1.csv") #cbb1 csv file -- has some edits I made in R from cbb20.csv file
+df = pd.read_csv(r"C:\Users\O973\Desktop\Personal\cbb1.csv") #cbb1 csv file -- has some edits I made in R from cbb20.csv file
 
 # %% [markdown]
 # The data set contains offensive and defensive information about each Division 1 baseketball team, as well as their rank and conference.
@@ -21,7 +21,7 @@ df.shape
 df.columns
 
 # %%
-kenPom = pd.read_csv(r"kenPom.csv") #kenPom csv file
+kenPom = pd.read_csv(r"C:\Users\O973\Desktop\Personal\KenPom.csv") #kenPom csv file
 kenPom = kenPom.iloc[:, 0:5]
 
 # %%
@@ -71,7 +71,7 @@ print(Automatic.shape)
 # %%
 At_large_prep = df[~df['TEAM'].isin(Automatic['TEAM'])]
 
-# Get the 32 teams with the highest "Wins Above the Bubble" not who did not get an automatic bid
+# Get the 32 teams with the highest "Wins Above the Bubble" who did not get an automatic bid
 At_large = At_large_prep.nlargest(32, 'WAB')
 print(At_large[['TEAM', 'CONF', 'RK']])
 
@@ -173,7 +173,7 @@ def simulate_win1(NetRTGZDiff):
         # For seg==1 (i.e. 0.05 < diff <= 0.15) the interval is (0.50, 0.55).
         lower = 0.50 + (seg - 1) * 0.0125
         upper = 0.55 + (seg - 1) * 0.0125
-        # Cap the interval when the lower bound reaches 0.95.
+        # Cap the interval when the lower bound reaches 0.95. This is mostly 1 vs 16 seeds so adjust the lower, upper to .95, 1
         if lower >= 0.95:
             lower, upper = 0.95, 1.0
         return np.random.uniform(lower, upper)
@@ -183,7 +183,7 @@ def simulate_win1(NetRTGZDiff):
         seg = math.ceil((abs(NetRTGZDiff) - 0.05) / 0.1)
         lower = 0.45 - (seg - 1) * 0.0125
         upper = 0.50 - (seg - 1) * 0.0125
-        # Cap the interval when the lower bound falls to 0.00.
+        # Cap the interval when the lower bound falls to 0
         if lower <= 0.00:
             lower, upper = 0.00, 0.05
         return np.random.uniform(lower, upper)
@@ -256,15 +256,6 @@ y = matchup_df1['WinProb']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # %%
-from sklearn.linear_model import LinearRegression
-
-model = LinearRegression()
-
-model.fit(X_train, y_train)
-
-# Assumptions of a linear model are not met
-
-# %%
 from sklearn.ensemble import RandomForestRegressor
 
 model = RandomForestRegressor(random_state=42)
@@ -325,6 +316,8 @@ kansas_matchups['win_probability'] = win_probabilities
 kansas_matchups[['team2', 'win_probability']]
 kansas_matchups[['team2', 'win_probability']].iloc[0:25]
 kansas_matchups[['team2', 'win_probability']].iloc[340:]
+kansas_matchups[kansas_matchups['team2'] == "NORFOLK ST."][['team2', 'win_probability']]
+matchup_df1[matchup_df1['team2'] == "NORFOLK ST."]
 
 # %% [markdown]
 # ## Simulation
@@ -400,7 +393,6 @@ def simulate_tournament(tournament_teams, model, df, verbose=False):
 
         # Simulate each matchup
         for team1, team2 in matchups:
-            # Retrieve team info (needed later for seed adjustments)
             team1_info = df[df['TEAM'] == team1].iloc[0]
             team2_info = df[df['TEAM'] == team2].iloc[0]
             
@@ -436,16 +428,12 @@ def simulate_tournament(tournament_teams, model, df, verbose=False):
             # Predict the win probability for team1.
             win_probability = model.predict(feature_df)[0]
 
-            # Adjust win probability based on seed differences.
-            # Retrieve seeds (assumed to be numeric, with lower numbers being the higher seed)
             team1_seed = team1_info['Seed']
             team2_seed = team2_info['Seed']
-            
-            # Calculate the absolute difference in seeds.
             seed_diff = abs(team1_seed - team2_seed)
             
-            # Apply 5% reduction per seed difference. For example, if team1 is a 1 seed and team2 is a 16 seed, the difference is 15 seeds, so the reduction is 0.05 * 15 = 0.75. If team1 is a 2 seed and team2 is a 3 seed, the difference is 1 seed, so the reduction is 0.05 * 1 = 0.05.
-            reduction = seed_diff * 0.05
+            # Apply 6% reduction per seed difference. For example, if team1 is a 1 seed and team2 is a 16 seed, the difference is 15 seeds, so the reduction is 0.06 * 15 = 0.90. If team1 is a 2 seed and team2 is a 3 seed, the difference is 1 seed, so the reduction is 0.06 * 1 = 0.06.
+            reduction = seed_diff * 0.06
 
             # Adjust win probability based on the seeding advantage.
             if team1_seed < team2_seed:
@@ -455,15 +443,14 @@ def simulate_tournament(tournament_teams, model, df, verbose=False):
                 # team1 is the underdog, so decrease its win probability.
                 adjusted_win_probability = win_probability * (1 - reduction)
             else:
-                # In the unlikely event that both seeds are the same, no adjustment is applied.
+                # both seeds are the same, no adjustment is applied (only should happen in Final Four and later)
                 adjusted_win_probability = win_probability
 
-            # Print the adjusted win probabilities.
             print(f"Projected win probability: {team1} vs {team2}")
             print(f"  {team1}: {adjusted_win_probability:.2f}")
             print(f"  {team2}: {1 - adjusted_win_probability:.2f}")
 
-            # Simulate the winner using the adjusted win probability.
+            # Simulate the winner using the adjusted win probability
             if np.random.rand() < adjusted_win_probability:
                 next_round_teams.append(team1)  # team1 wins
             else:
@@ -490,6 +477,9 @@ print(f"\nThe winner of the tournament is: {winner}")
 # %%
 from collections import Counter
 
+# %% [markdown]
+# [SKIP OUTPUT](#next-section2)
+
 # %%
 #simulate tournament n times
 num_simulations = 1000
@@ -500,9 +490,13 @@ for _ in range(num_simulations):
     champion = simulate_tournament(tournament_teams.copy(), model, df, verbose=False)
     champion_counts[champion] += 1
 
-print("\nChampionship counts over", num_simulations, "simulations:")
+print("Championship counts over", num_simulations, "simulations:")
 for team, wins in champion_counts.items():
     print(f"{team}: {wins}")
+
+# %% [markdown]
+# <a id="next-section2"></a>
+# 
 
 # %% [markdown]
 # ## Score Predictions
@@ -531,10 +525,8 @@ def simulate_tournament1(tournament_teams, model, df, verbose=True):
         'Luck_diff', 'SoS_diff', 'conf_match'
     ]
     
-    margin_factor = np.random.uniform(0,1) #how much the score disparity between higher and lower seeds should be (.5 works better well)
-    std_dev = np.random.uniform(2,6) #just kinda a guess and check -- tried doing this statistically and was getting scores like RUTGERS 143 - USC 139 | Winner: RUTGERS
-    
     while len(current_round_teams) > 1:
+
         print(f"\n----------------------------------------------------------\nSimulating Round {round_number}...")
         next_round_teams = []
         round_results = []
@@ -544,22 +536,30 @@ def simulate_tournament1(tournament_teams, model, df, verbose=True):
         matchups = []
         num_games = len(current_round_teams) // 2
         for i in range(num_games):
+
+        #     #these variables indicate how much more the point difference is between high and low seeds and variation should be in the expected score -- by round
+        #     margin_factor = 0
+        #     if round_number == 1:
+        #         margin_factor = np.random.normal(.75, scale = .15)
+        #     elif round_number = 2:
+        #         margin_factor = np.random.normal(.65, scale = .15) #how much the score disparity between higher and lower seeds should be (.5 works well)
+            round_margins = [0, 0.75, 0.65, 0.60, 0.55, 0.50, 0.45, 0.40]
+            margin_factor = np.random.normal(round_margins[round_number], scale=0.15)
+            std_dev = 4 #just kinda a guess and check -- tried doing this statistically and was getting scores like RUTGERS 143 - USC 139 | Winner: RUTGERS
+                
             team1 = current_round_teams[i]
             team2 = current_round_teams[-(i + 1)]  # Pair first with last, etc.
             matchups.append((team1, team2))
-            
+                
             team1_info = df[df['TEAM'] == team1].iloc[0]
             team2_info = df[df['TEAM'] == team2].iloc[0]
-            print(f"  {team1} (Seed: {team1_info['Seed']}, Tournament Rank: {team1_info['Tournament_Rank']}) vs "
-                  f"{team2} (Seed: {team2_info['Seed']}, Tournament Rank: {team2_info['Tournament_Rank']})")
+            print(f"  {team1} (Seed: {team1_info['Seed']}, Tournament Rank: {team1_info['Tournament_Rank']}) vs " f"{team2} (Seed: {team2_info['Seed']}, Tournament Rank: {team2_info['Tournament_Rank']})")
     
         # Simulate each matchup.
         for team1, team2 in matchups:
-            # Retrieve information for both teams.
             team1_info = df[df['TEAM'] == team1].iloc[0]
             team2_info = df[df['TEAM'] == team2].iloc[0]
             
-            # Calculate feature differences for the matchup.
             feature_vector = {
                 #'rank_diff': df[df['TEAM'] == team1]['RK'].values[0] - df[df['TEAM'] == team2]['RK'].values[0],
                 'ADJOE_diff': team1_info['ADJOE'] - team2_info['ADJOE'],
@@ -590,11 +590,11 @@ def simulate_tournament1(tournament_teams, model, df, verbose=True):
             #win prob for team1.
             win_probability = model.predict(feature_df)[0]
     
-            #Adjust win probability based on seed differences. A 1-16 seed matchup is a 15 seed difference, so the reduction in win % for the 16 seed is 0.05 * 15 = 0.75.
+            #Adjust win probability based on seed differences by 6% for each seed difference
             team1_seed = team1_info['Seed']
             team2_seed = team2_info['Seed']
             seed_diff = abs(team1_seed - team2_seed)
-            reduction = seed_diff * 0.05
+            reduction = seed_diff * .06
             
             if team1_seed < team2_seed:
                 # Team1 is favored.
@@ -609,7 +609,7 @@ def simulate_tournament1(tournament_teams, model, df, verbose=True):
             print(f"  {team1}: {adjusted_win_probability:.2f}")
             print(f"  {team2}: {1 - adjusted_win_probability:.2f}")
     
-            # Base expected scores from team offensive and opponent defensive metrics.
+            #base scores
             base_team1_expected = (team1_info['PPG'] + team2_info['PAPG']) / 2
             base_team2_expected = (team2_info['PPG'] + team1_info['PAPG']) / 2
     
@@ -636,8 +636,7 @@ def simulate_tournament1(tournament_teams, model, df, verbose=True):
                 winner = team1
                 # Ensure team1 wins in the scoreline.
                 if team1_score <= team2_score:
-                    team1_score = team2_score + np.random.randint(1, 16) #makes team 1 win by 1-15 points 
-                    #thought about using np.random.poisson(lam=4) to make games closer, but just doing a random int is better
+                    team1_score = team2_score + int(np.random.poisson(lam=5))
             else:
                 winner = team2
                 if team2_score <= team1_score:
@@ -681,7 +680,7 @@ print(f"\nThe winner of the tournament is: {winner}")
 # ## 2025 Simulation
 
 # %%
-df_2025 = pd.read_csv(r"cbb25.csv")
+df_2025 = pd.read_csv(r"C:\Users\O973\Desktop\Personal\cbb25.csv")
 
 # %%
 df_2025.head()
@@ -724,6 +723,9 @@ tournament_teams_2025.head()
 winner = simulate_tournament1(tournament_teams_2025, model, df_2025)
 print(f"\nThe winner of the tournament is: {winner}")
 
+# %% [markdown]
+# [SKIP OUTPUT](#next-section1)
+
 # %%
 #simulate tournament n times
 num_simulations = 1000
@@ -737,6 +739,10 @@ for _ in range(num_simulations):
 print("Championship counts over", num_simulations, "simulations:")
 for team, wins in champion_counts.items():
     print(f"{team}: {wins}")
+
+# %% [markdown]
+# <a id="next-section1"></a>
+# 
 
 # %%
 # Win probs for Duke -- num. 1 team in the country at the end of the season
@@ -872,16 +878,16 @@ print(mse2)
 
 # %%
 # Win probs for Duke -- num. 1 team in the country at the end of the season
-kansas_stats = df_2025[df_2025['TEAM'] == "Duke"].iloc[0]
+kansas_stats = df_2025[df_2025['TEAM'] == "Auburn"].iloc[0]
 
 # Create matchups where Duke is team1
 matchups = []
 for team in df_2025['TEAM'].unique():
-    if team != "Duke":
+    if team != "Auburn":
         team_stats = df_2025[df_2025['TEAM'] == team].iloc[0]
         
         matchup = {
-            'team1': "Duke",
+            'team1': "Auburn",
             'team2': team,
             'rank_diff': kansas_stats['RK'] - team_stats['RK'],
             'ADJOE_diff': kansas_stats['ADJOE'] - team_stats['ADJOE'],
@@ -939,6 +945,9 @@ kansas_matchups[['team2', 'win_probabilityRF', 'win_probabilityXG']]
 winner = simulate_tournament1(tournament_teams_2025, model2, df_2025)
 print(f"\nThe winner of the tournament is: {winner}")
 
+# %% [markdown]
+# [SKIP OUTPUT](#next-section)
+
 # %%
 #simulate tournament n times
 num_simulations = 1000
@@ -952,5 +961,8 @@ for _ in range(num_simulations):
 print("\nChampionship counts over", num_simulations, "simulations:")
 for team, wins in champion_counts.items():
     print(f"{team}: {wins}")
+
+# %% [markdown]
+# <a id="next-section"></a>
 
 
